@@ -63,6 +63,7 @@ else
     
     local function parentHolo(objectName, parentEnt)
         local holo = holoTable[objectName]
+        holo:suppressEngineLighting(true)
         holo:setParent(parentEnt)
     end
     
