@@ -68,9 +68,15 @@ else
     
     local function createTexture(textureURL, bumpmapURL, flagInt)
         local texture = material.create("VertexLitGeneric")
-        texture:setTextureURL("$basetexture", textureURL)
+        texture:setTextureURL("$basetexture", textureURL, function(mat, url, w, h, layout)
+            if mat == nil then return end
+            layout(0, 0, mat:getWidth(), mat:getHeight())
+        end)
         if bumpmapURL != nil then
-            texture:setTextureURL("$bumpmap", bumpmapURL)
+            texture:setTextureURL("$bumpmap", bumpmapURL, function(mat, url, w, h, layout)
+                if mat == nil then return end
+                layout(0, 0, mat:getWidth(), mat:getHeight())
+            end)
             texture:setTexture("$envmap", "env_cubemap")
             texture:setFloat("$envmapcontrast", 1)
             texture:setFloat("$envmapsaturation", 0.20000000298023)
@@ -89,11 +95,12 @@ else
     local function setHoloMesh(holo, mesh_, texture)
         holo:setMesh(mesh_)
         holo:setMeshMaterial(texture)
-        holo:setRenderBounds(Vector(-10000),Vector(10000))
+        holo:setRenderBounds(Vector(-500),Vector(500))
     end
     
     function createMeshFromOBJ()
         http.get(OBJFileURL,function(objdata)  
+            local loadedCount = 0
             for k,v in ipairs(objectNames) do
                 local holo = createHolo(objectNames[k])
                 local texture = createTexture(textureURLs[k],bumpmapURLs[k],textureFlags[k])
@@ -105,6 +112,10 @@ else
                             holo:setScale(Vector(meshScale))
                             print("Finished loading:", objectNames[k], "with texture:", textureURLs[k], bumpmapURLs[k])
                             hook.remove("think",objectNames[k])
+                            loadedCount = loadedCount + 1
+                            if loadedCount == table.count(objectNames) then
+                                print("All objects loaded!")
+                            end
                             return
                         end
                     end
@@ -112,7 +123,8 @@ else
             end
             net.start("handlewireinputcreation")
             net.writeTable(table.getKeys(holoTable))
-            net.send() 
+            net.send()
+            print("Creating wire entity inputs for parenting...") 
         end) 
     end 
     
@@ -120,6 +132,7 @@ else
         local objectName = net.readString()
         local parentEnt = net.readEntity()
         parentHolo(objectName, parentEnt)
+        print(objectName, "parented to", parentEnt)
     end)
-    
+
 end
